@@ -1,5 +1,5 @@
-{-# Language TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 {- |
 
@@ -44,14 +44,16 @@ module Data.Bson.Mapping
        , getField
        ) where
 
-import Prelude hiding (lookup)
+import           Prelude                  hiding (lookup)
 
-import Data.Bson
-import Data.Data               (Typeable)
-import Data.Text (Text, append, cons, pack)
+import           Data.Bson
+import           Data.Char
+import           Data.Data                (Typeable)
+import           Data.Text                (Text, append, cons, pack)
+import           Text.Casing
 
-import Language.Haskell.TH
-import Language.Haskell.TH.Lift ()
+import           Language.Haskell.TH
+import           Language.Haskell.TH.Lift ()
 
 class (Show a, Eq a, Typeable a) => Bson a where
   toBson     :: a -> Document
@@ -195,7 +197,7 @@ deriveBson type' = do
     genStmts [] _ = return ([], [])
     genStmts (f : fs) doc = do
       fvar <- newName "f"
-      let stmt = bindS (varP fvar) $ [| lookup (pack (nameBase f)) $doc |]
+      let stmt = bindS (varP fvar) $ [| lookup (pack $ unQuietSnake (nameBase f)) $doc |]
       (fields, stmts) <- genStmts fs doc
       return $ (return (f, VarE fvar) : fields, stmt : stmts)
 
@@ -237,7 +239,12 @@ subDocument :: Label -> Document -> Document
 subDocument lab doc = [append lab (cons '.' l) := v | (l := v) <- doc]
 
 getLabel :: Name -> Q Exp
-getLabel n = [| (nameBase n) |]
+getLabel n = [| ( quietSnake $ nameBase n) |]
+
+unQuietSnake = mconcat . fmap go . unIdentifier . fromSnake
+  where
+    go []       = []
+    go ( x:xs ) = ( toUpper x : xs )
 
 {-|
 
