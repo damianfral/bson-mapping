@@ -118,7 +118,7 @@ deriveBson type' = do
       -- With data Foo = Foo {one :: String, two :: Int}
       -- This will produce something like:
       -- toBson i@Foo{} = merge ["_cons" =: "Foo"] ["one" =: one i, "two" =: two i]
-      clause [asP i (recP name [])] (normalB $ [| (merge $(getConsDoc name)) ($fieldsDoc $(varE i)) |]) []
+      clause [asP i (recP name [])] (normalB $ [| ($fieldsDoc $(varE i)) |]) []
     -- If it's a normal constructor, generate a document with an array
     -- with the data.
     deriveToBson (NormalC name types) = do
